@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="slide-in-top">Панель администратора</h2>
+<p>Добро пожаловать, администратор {{ session['username'] }}!</p>
+
+<div class="row g-3">
+  <div class="col-md-4">
+    <div class="card card-custom p-3 fade-in-card">
+      <h4>Всего пользователей</h4>
+      <p class="display-6">{{ total_users }}</p>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card card-custom p-3 fade-in-card">
+      <h4>Всего предметов</h4>
+      <p class="display-6">{{ total_items }}</p>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card card-custom p-3 fade-in-card">
+      <h4>Всего заявок</h4>
+      <p class="display-6">{{ total_requests }}</p>
+    </div>
+  </div>
+</div>
+
+<hr>
+
+<div class="d-flex flex-wrap gap-2 mt-3">
+  <a href="{{ url_for('admin_inventory') }}" class="btn btn-primary bounce-on-hover">Управление инвентарём</a>
+  <a href="{{ url_for('admin_requests') }}" class="btn btn-secondary bounce-on-hover">Заявки</a>
+  <a href="{{ url_for('admin_users') }}" class="btn btn-dark bounce-on-hover">Пользователи</a>
+  <a href="{{ url_for('purchase_planning') }}" class="btn btn-success bounce-on-hover">План закупок</a>
+  <a href="{{ url_for('reports') }}" class="btn btn-warning bounce-on-hover">Отчёты</a>
+</div>
+{% endblock %}

@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="slide-in-top">Отчёты</h2>
+<p>Выгрузка списка инвентаря в формат CSV или JSON.</p>
+<div class="btn-group fade-in-card" role="group">
+  <a href="{{ url_for('export_csv') }}" class="btn btn-primary bounce-on-hover">Экспорт CSV</a>
+  <a href="{{ url_for('export_json') }}" class="btn btn-secondary bounce-on-hover">Экспорт JSON</a>
+</div>
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="slide-in-top">Управление пользователями</h2>
+<p>Здесь можно посмотреть всех пользователей, их ID, а также удалить при необходимости.</p>
+
+<table class="table fade-in-card">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Логин</th>
+      <th>Роль</th>
+      <th>ФИО</th>
+      <th>Инвентарь в пользовании</th>
+      <th>Действия</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for u in users %}
+    <tr>
+      <td>{{ u.id }}</td>
+      <td>{{ u.username }}</td>
+      <td>{{ u.role }}</td>
+      <td>{{ u.full_name or '' }}</td>
+      <td>
+        <!-- Перечислим инвентарь, assigned_to = u.id -->
+        {% for item in u.inventory %}
+          #{{ item.inventory_number }} ({{ item.condition }}),
+        {% else %}
+          Нет
+        {% endfor %}
+      </td>
+      <td>
+        <form method="POST" action="{{ url_for('delete_user', user_id=u.id) }}">
+          <button class="btn btn-sm btn-danger bounce-on-hover" 
+                  onclick="return confirm('Удалить пользователя {{u.username}}?')">
+            Удалить
+          </button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

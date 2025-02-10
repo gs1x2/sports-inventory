@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Sports Inventory</title>
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+
+<body class="fade-in-body">
+
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-custom">
+    <div class="container-fluid">
+      <a class="navbar-brand bounce-in" href="{{ url_for('index') }}">Sports Inventory</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar"
+        aria-controls="mainNavbar" aria-expanded="false" aria-label="Переключить меню">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="mainNavbar">
+        <ul class="navbar-nav ms-auto">
+          {% if 'username' not in session %}
+          <!-- Гость -->
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('index') }}">Home</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('login') }}">Login</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('register') }}">Register</a>
+          </li>
+
+          {% else %}
+          {% if session['username'] in config.ADMIN_LOGINS %}
+          <!-- Админ -->
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('admin_dashboard') }}">Admin Dashboard</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('admin_requests') }}">Requests</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('admin_users') }}">Users</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('admin_inventory') }}">Inventory</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('purchase_planning') }}">Purchase Planning</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('reports') }}">Reports</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link text-warning" href="{{ url_for('logout') }}">Logout</a>
+          </li>
+          {% else %}
+          <!-- Пользователь -->
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('user_dashboard') }}">User Dashboard</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('user_requests') }}">Requests</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('user_return_items') }}">Return Items</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link text-warning" href="{{ url_for('logout') }}">Logout</a>
+          </li>
+          {% endif %}
+          {% endif %}
+
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container mt-4 content-fade-in">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+      {{ message }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+
+</html>

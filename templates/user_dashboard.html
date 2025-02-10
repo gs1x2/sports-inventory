@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="slide-in-top">Личный кабинет: {{ user.full_name or user.username }}</h2>
+<p>Здесь вы видите весь имеющийся в базе инвентарь (для примера).  
+   Доступность (is_available) показывает, свободен ли предмет.</p>
+
+<div class="row g-4 mt-4">
+  {% for item in inventory %}
+    <div class="col-md-4">
+      <div class="card card-custom h-100 fade-in-card">
+        <div class="card-body">
+          <h5 class="card-title">#{{ item.inventory_number }}</h5>
+          <p>Состояние: {{ item.condition }}</p>
+          <p>
+            {% if item.is_available %} 
+              <span class="badge bg-success">Доступен</span>
+            {% else %}
+              <span class="badge bg-danger">Недоступен</span>
+            {% endif %}
+          </p>
+          {% if item.assigned_to == user.id %}
+            <p class="text-info">Этот предмет закреплён за вами.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+{% endblock %}

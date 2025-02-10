@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="slide-in-top">Добавить новый предмет</h2>
+<div class="row justify-content-center">
+  <div class="col-md-6 card-custom p-4 fade-in-card">
+    <form method="POST" action="{{ url_for('create_item') }}">
+      <div class="mb-3">
+        <label for="inventory_number" class="form-label">Инвентарный номер (уникальный)</label>
+        <input type="text" class="form-control" id="inventory_number" name="inventory_number" required>
+        <small class="text-muted">Можно использовать цифры, а также символы - . /</small>
+      </div>
+      <div class="mb-3">
+        <label for="name" class="form-label">Название</label>
+        <input type="text" class="form-control" id="name" name="name">
+      </div>
+      <div class="mb-3">
+        <label for="condition" class="form-label">Состояние</label>
+        <select class="form-select" id="condition" name="condition">
+          <option value="new">Новый</option>
+          <option value="in_use">В использовании</option>
+          <option value="broken">Сломанный</option>
+          <option value="decommissioned">Списан</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-success bounce-on-hover">Сохранить</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

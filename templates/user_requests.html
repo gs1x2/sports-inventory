@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="slide-in-top">Мои заявки</h2>
+<p>Здесь вы можете создать заявку на получение или ремонт/замену инвентаря (укажите инвентарный номер).</p>
+
+<div class="row">
+  <div class="col-md-6">
+    <div class="card card-custom p-3 mb-3 fade-in-card">
+      <form method="POST" action="{{ url_for('user_requests') }}">
+        <div class="mb-3">
+          <label for="request_type" class="form-label">Тип заявки</label>
+          <select class="form-select" id="request_type" name="request_type" required>
+            <option value="get_item">Получение инвентаря</option>
+            <option value="repair_item">Ремонт / Замена инвентаря</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label for="inventory_number" class="form-label">Инвентарный номер</label>
+          <input type="text" class="form-control" id="inventory_number" name="inventory_number" required>
+        </div>
+        <div class="mb-3">
+          <label for="comment" class="form-label">Комментарий (необязательно)</label>
+          <textarea class="form-control" id="comment" name="comment" rows="3"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary bounce-on-hover">Отправить заявку</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <h4>Список ваших заявок</h4>
+    <ul class="list-group fade-in-card">
+      {% for req in user_requests %}
+      <li class="list-group-item">
+        <div>
+          <strong>Тип:</strong> {{ req.request_type }}  
+          <strong>Предмет №:</strong> {{ req.inventory_number }}
+          <strong>Статус:</strong> {{ req.status }}
+        </div>
+        {% if req.comment %}
+          <div><small>Комментарий: {{ req.comment }}</small></div>
+        {% endif %}
+        <div><small>Создана: {{ req.created_at }}</small></div>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="slide-in-top">Все заявки</h2>
+<p>Администратор может подтверждать или отклонять заявки.</p>
+
+<table class="table fade-in-card">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Пользователь</th>
+      <th>Тип</th>
+      <th>Инв. номер</th>
+      <th>Статус</th>
+      <th>Дата создания</th>
+      <th>Действия</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for req in requests %}
+    <tr>
+      <td>{{ req.id }}</td>
+      <td>{{ req.user.username }} (ID: {{ req.user.id }})</td>
+      <td>{{ req.request_type }}</td>
+      <td>#{{ req.inventory_number }}</td>
+      <td>{{ req.status }}</td>
+      <td>{{ req.created_at }}</td>
+      <td>
+        {% if req.status == 'pending' %}
+          <form method="POST" action="{{ url_for('approve_request', req_id=req.id) }}" style="display:inline;">
+            <button class="btn btn-sm btn-success bounce-on-hover">Approve</button>
+          </form>
+          <form method="POST" action="{{ url_for('reject_request', req_id=req.id) }}" style="display:inline;">
+            <button class="btn btn-sm btn-danger bounce-on-hover">Reject</button>
+          </form>
+        {% else %}
+          <span class="text-muted">Обработано</span>
+        {% endif %}
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
