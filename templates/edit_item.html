@@ -1,12 +1,13 @@
 {% extends "base.html" %}
 {% block content %}
-<h2 class="slide-in-top">Редактирование предмета #{{ item.inventory_number }}</h2>
+<h2 class="slide-in-top">Редактирование позиции #{{ item.inventory_number }}</h2>
 <div class="row justify-content-center">
   <div class="col-md-6 card-custom p-4 fade-in-card">
     <form method="POST" action="{{ url_for('edit_item', item_id=item.id) }}">
       <div class="mb-3">
         <label class="form-label">Инвентарный номер</label>
         <input type="text" class="form-control" value="{{ item.inventory_number }}" disabled>
+        <small class="text-muted">Редактирование инвентарного номера невозможно. При необходимости обратитесь к администратору или в <a href="../faq" class="alert-link">базу знаний</a>.</small>
       </div>
 
       <div class="mb-3">

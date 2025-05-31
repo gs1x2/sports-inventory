@@ -12,7 +12,7 @@
   </div>
   <div class="col-md-4">
     <div class="card card-custom p-3 fade-in-card">
-      <h4>Всего предметов</h4>
+      <h4>Всего позиций</h4>
       <p class="display-6">{{ total_items }}</p>
     </div>
   </div>
@@ -32,5 +32,7 @@
   <a href="{{ url_for('admin_users') }}" class="btn btn-dark bounce-on-hover">Пользователи</a>
   <a href="{{ url_for('purchase_planning') }}" class="btn btn-success bounce-on-hover">План закупок</a>
   <a href="{{ url_for('reports') }}" class="btn btn-warning bounce-on-hover">Отчёты</a>
+
+
 </div>
 {% endblock %}

@@ -3,41 +3,69 @@
 <h2 class="slide-in-top">Все заявки</h2>
 <p>Администратор может подтверждать или отклонять заявки.</p>
 
-<table class="table fade-in-card">
-  <thead>
-    <tr>
-      <th>ID</th>
-      <th>Пользователь</th>
-      <th>Тип</th>
-      <th>Инв. номер</th>
-      <th>Статус</th>
-      <th>Дата создания</th>
-      <th>Действия</th>
-    </tr>
-  </thead>
-  <tbody>
-  {% for req in requests %}
-    <tr>
-      <td>{{ req.id }}</td>
-      <td>{{ req.user.username }} (ID: {{ req.user.id }})</td>
-      <td>{{ req.request_type }}</td>
-      <td>#{{ req.inventory_number }}</td>
-      <td>{{ req.status }}</td>
-      <td>{{ req.created_at }}</td>
-      <td>
-        {% if req.status == 'pending' %}
-          <form method="POST" action="{{ url_for('approve_request', req_id=req.id) }}" style="display:inline;">
-            <button class="btn btn-sm btn-success bounce-on-hover">Approve</button>
-          </form>
-          <form method="POST" action="{{ url_for('reject_request', req_id=req.id) }}" style="display:inline;">
-            <button class="btn btn-sm btn-danger bounce-on-hover">Reject</button>
-          </form>
-        {% else %}
-          <span class="text-muted">Обработано</span>
-        {% endif %}
-      </td>
-    </tr>
-  {% endfor %}
-  </tbody>
-</table>
+<div class="table-responsive">
+  <table class="table fade-in-card">
+    <thead>
+      <tr>
+        <th style="width: 5%">ID</th>
+        <th style="width: 15%">Пользователь</th>
+        <th style="width: 10%">Тип</th>
+        <th style="width: 10%">Инв. номер</th>
+        <th style="width: 10%">Статус</th>
+        <th style="width: 15%">Дата создания</th>
+        <th style="width: 20%">Комментарий</th>
+        <th style="width: 15%">Действия</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for req in requests %}
+      <tr>
+        <td>{{ req.id }}</td>
+        <td>{{ req.user.username }} (ID: {{ req.user.id }})</td>
+        <td>{{ req.request_type }}</td>
+        <td>#{{ req.inventory_number }}</td>
+        <td>{{ req.status }}</td>
+        <td>{{ req.created_at }}</td>
+        <td style="max-width: 200px; white-space: normal; word-wrap: break-word;">{{ req.comment }}</td>
+        <td>
+          {% if req.status == 'pending' %}
+            <div class="btn-group" role="group">
+              <form method="POST" action="{{ url_for('approve_request', req_id=req.id) }}" style="display:inline;">
+                <button class="btn btn-sm btn-success bounce-on-hover">Принять</button>
+              </form>
+              <form method="POST" action="{{ url_for('reject_request', req_id=req.id) }}" style="display:inline;">
+                <button class="btn btn-sm btn-danger bounce-on-hover">Отклонить</button>
+              </form>
+            </div>
+          {% else %}
+            <span class="text-muted">Обработано</span>
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<style>
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .table td {
+    vertical-align: middle;
+  }
+  
+  .btn-group {
+    display: flex;
+    gap: 5px;
+  }
+  
+  @media (max-width: 1200px) {
+    .table td, .table th {
+      font-size: 0.9em;
+    }
+  }
+</style>
 {% endblock %}

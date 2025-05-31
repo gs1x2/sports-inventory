@@ -2,6 +2,15 @@ FROM python:3.9-slim
 
 ENV PYTHONUNBUFFERED 1
 
+# Установка системных зависимостей
+RUN apt-get update && apt-get install -y \
+    default-libmysqlclient-dev \
+    build-essential \
+    pkg-config \
+    libffi-dev \
+    python3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 COPY requirements.txt /app/

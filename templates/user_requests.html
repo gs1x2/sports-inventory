@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 <h2 class="slide-in-top">Мои заявки</h2>
-<p>Здесь вы можете создать заявку на получение или ремонт/замену инвентаря (укажите инвентарный номер).</p>
+<p>Здесь вы можете создать заявку на получение или ремонт/замену позиции (укажите инвентарный номер).</p>
 
 <div class="row">
   <div class="col-md-6">
@@ -17,6 +17,11 @@
         <div class="mb-3">
           <label for="inventory_number" class="form-label">Инвентарный номер</label>
           <input type="text" class="form-control" id="inventory_number" name="inventory_number" required>
+          <small class="text-muted">Можно использовать цифры, а также символы - . /</small>
+          <br>
+          <p>
+          <small class="text-muted">Для ввода инвентарного номера вы можете воспользоваться подключённым сканером штрих/qr-кода, предварительно убрав постфикс.<br> <a href="../faq" class="alert-link">Подробнее см. в базе знаний</a>.</small>
+          </p>
         </div>
         <div class="mb-3">
           <label for="comment" class="form-label">Комментарий (необязательно)</label>
