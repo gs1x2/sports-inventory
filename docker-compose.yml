@@ -14,12 +14,18 @@ services:
       - "3306:3306"
     volumes:
       - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   web:
     build: .
     container_name: sports_inventory_app
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     environment:
       SECRET_KEY: "super_secret_key_change_me"
       DB_HOST: "db"

@@ -8,6 +8,8 @@ import json
 import io
 from models import db, User, InventoryItem, PurchasePlan, UserRequest, ActionLog
 import config
+import time
+from sqlalchemy.exc import OperationalError
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = config.SECRET_KEY
@@ -24,9 +26,23 @@ def is_admin():
     """
     return 'username' in session and session['username'] in config.ADMIN_LOGINS
 
+def wait_for_db():
+    max_retries = 5
+    retry_interval = 5
+    
+    for i in range(max_retries):
+        try:
+            db.create_all()
+            return
+        except OperationalError:
+            if i < max_retries - 1:
+                print(f"Database connection failed. Retrying in {retry_interval} seconds...")
+                time.sleep(retry_interval)
+            else:
+                raise
 
 with app.app_context():
-    db.create_all()
+    wait_for_db()
     
 @app.route('/')
 def index():
@@ -297,10 +313,6 @@ def edit_item(item_id):
 
         flash('Изменения сохранены!', 'success')
         return redirect(url_for('admin_inventory'))
-
-    all_users = User.query.all()
-    return render_template('edit_item.html', item=item, all_users=all_users)
-
 
     all_users = User.query.all()
     return render_template('edit_item.html', item=item, all_users=all_users)
