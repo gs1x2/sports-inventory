@@ -98,3 +98,13 @@ class ActionLog(db.Model):
 
     def __repr__(self):
         return f'<ActionLog {self.action} by User {self.user_id}>'
+
+class SystemLog(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    ip_address = db.Column(db.String(45), nullable=False, index=True)  # IPv6 может быть длиннее
+    user_agent = db.Column(db.Text, nullable=True)
+    path = db.Column(db.String(255), nullable=False)
+    method = db.Column(db.String(10), nullable=False)
+    status_code = db.Column(db.Integer, nullable=False)
+    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    response_time = db.Column(db.Float, nullable=True)  # время ответа в секундах

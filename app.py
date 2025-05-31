@@ -6,10 +6,12 @@ from io import BytesIO
 import csv
 import json
 import io
-from models import db, User, InventoryItem, PurchasePlan, UserRequest, ActionLog
+from models import db, User, InventoryItem, PurchasePlan, UserRequest, ActionLog, SystemLog
 import config
 import time
 from sqlalchemy.exc import OperationalError
+from functools import wraps
+from datetime import datetime
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = config.SECRET_KEY
@@ -214,11 +216,13 @@ def admin_dashboard():
     total_users = User.query.count()
     total_items = InventoryItem.query.count()
     total_requests = UserRequest.query.count()
+    total_logs = SystemLog.query.count()
 
     return render_template('admin_dashboard.html',
                            total_users=total_users,
                            total_items=total_items,
-                           total_requests=total_requests)
+                           total_requests=total_requests,
+                           total_logs=total_logs)
 
 @app.route('/admin/inventory')
 def admin_inventory():
@@ -558,7 +562,135 @@ def delete_user(user_id):
     flash('Пользователь и все связанные предметы освобождены.', 'success')
     return redirect(url_for('admin_users'))
 
+@app.route('/faq')
+def faq():
+    """
+    Страница с часто задаваемыми вопросами (FAQ).
+    В будущих обновлениях здесь будет база знаний.
+    """
+    return render_template('faq.html')
+
 # -------------------- Запуск --------------------
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080, debug=True)
+
+@app.after_request
+def log_request(response):
+    """Middleware для логирования всех запросов"""
+    # Получаем информацию о запросе
+    ip = request.remote_addr
+    user_agent = request.headers.get('User-Agent', '')
+    path = request.path
+    method = request.method
+    
+    # Сохраняем в базу
+    log = SystemLog(
+        ip_address=ip,
+        user_agent=user_agent,
+        path=path,
+        method=method,
+        status_code=response.status_code,
+        response_time=time.time() - request.start_time if hasattr(request, 'start_time') else None
+    )
+    db.session.add(log)
+    db.session.commit()
+    
+    return response
+
+@app.before_request
+def before_request():
+    """Сохраняем время начала запроса для подсчета времени ответа"""
+    request.start_time = time.time()
+
+@app.route('/admin/system_logs', methods=['GET', 'POST'])
+def system_logs():
+    if not is_admin():
+        return render_template('error_403.html')
+    
+    # Обработка удаления логов
+    if request.method == 'POST' and request.form.get('action') == 'delete_logs':
+        try:
+            # Удаляем все логи
+            SystemLog.query.delete()
+            db.session.commit()
+            flash('Все логи успешно удалены', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Ошибка при удалении логов: {str(e)}', 'danger')
+        return redirect(url_for('system_logs'))
+    
+    # Получаем уникальные IP-адреса
+    ip_addresses = db.session.query(SystemLog.ip_address).distinct().all()
+    ip_addresses = [ip[0] for ip in ip_addresses]
+    
+    # Получаем выбранный IP из параметров запроса
+    selected_ip = request.args.get('ip')
+    
+    # Если выбран конкретный IP, показываем его логи
+    if selected_ip:
+        logs = SystemLog.query.filter_by(ip_address=selected_ip)\
+            .order_by(SystemLog.timestamp.desc())\
+            .limit(1000).all()
+    else:
+        # Иначе показываем последние 1000 логов
+        logs = SystemLog.query.order_by(SystemLog.timestamp.desc())\
+            .limit(1000).all()
+    
+    # Группируем логи по IP для сводки
+    ip_summary = {}
+    for ip in ip_addresses:
+        ip_logs = SystemLog.query.filter_by(ip_address=ip).all()
+        ip_summary[ip] = {
+            'total_requests': len(ip_logs),
+            'unique_paths': len(set(log.path for log in ip_logs)),
+            'last_activity': max(log.timestamp for log in ip_logs),
+            'status_codes': {
+                code: len([log for log in ip_logs if log.status_code == code])
+                for code in set(log.status_code for log in ip_logs)
+            }
+        }
+    
+    return render_template('system_logs.html',
+                         ip_addresses=ip_addresses,
+                         selected_ip=selected_ip,
+                         logs=logs,
+                         ip_summary=ip_summary)
+
+@app.route('/admin/export_logs')
+def export_logs():
+    """Экспорт логов в CSV файл"""
+    if not is_admin():
+        return render_template('error_403.html')
+    
+    # Получаем все логи
+    logs = SystemLog.query.order_by(SystemLog.timestamp.desc()).all()
+    
+    # Создаём CSV
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Заголовки
+    writer.writerow(['Timestamp', 'IP Address', 'Method', 'Path', 'Status Code', 
+                    'Response Time', 'User Agent'])
+    
+    # Данные
+    for log in logs:
+        writer.writerow([
+            log.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+            log.ip_address,
+            log.method,
+            log.path,
+            log.status_code,
+            f"{log.response_time:.3f}s" if log.response_time else '',
+            log.user_agent
+        ])
+    
+    # Подготавливаем ответ
+    output.seek(0)
+    return send_file(
+        io.BytesIO(output.getvalue().encode('utf-8-sig')),
+        mimetype='text/csv',
+        as_attachment=True,
+        download_name=f'system_logs_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+    )
