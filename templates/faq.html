@@ -1,19 +1,227 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="container mt-4">
-    <h2 class="slide-in-top">Часто задаваемые вопросы (FAQ)</h2>
-    
-    <div class="card fade-in-card mt-4">
-        <div class="card-body">
-            <h5 class="card-title">База знаний</h5>
-            <p class="card-text">
-                В будущих обновлениях здесь будет размещена база знаний с часто задаваемыми вопросами 
-                и полезной информацией по работе с системой учета инвентаря.
-            </p>
-            <p class="card-text text-muted">
-                Дата обновления: Скоро
-            </p>
+  <h2 class="slide-in-top mb-3">База знаний IMS</h2>
+
+  <!-- Поиск по базе знаний -->
+  <div class="mb-4">
+    <input type="text" class="form-control" id="faqSearch" placeholder="Поиск по ключевым словам...">
+  </div>
+
+  <!-- FAQ Accordion -->
+  <div class="accordion" id="faqAccordion">
+    <!-- Общие сведения -->
+    <div class="accordion-item" id="general">
+      <h2 class="accordion-header" id="headingGeneral">
+        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseGeneral" aria-expanded="true" aria-controls="collapseGeneral">
+          Общие сведения
+        </button>
+      </h2>
+      <div id="collapseGeneral" class="accordion-collapse collapse show" aria-labelledby="headingGeneral" data-bs-parent="#faqAccordion">
+        <div class="accordion-body">
+          <ul>
+            <li>IMS — это система учёта и управления инвентарём для школы или организации.</li>
+            <li>В системе реализовано разграничение прав: администратор и пользователь.</li>
+            <li>Все действия пользователей и администраторов логируются.</li>
+            <li>Доступна работа через веб-интерфейс с поддержкой мобильных устройств.</li>
+          </ul>
         </div>
+      </div>
     </div>
+    <!-- Роли и права -->
+    <div class="accordion-item" id="roles">
+      <h2 class="accordion-header" id="headingRoles">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseRoles" aria-expanded="false" aria-controls="collapseRoles">
+          Роли и права
+        </button>
+      </h2>
+      <div id="collapseRoles" class="accordion-collapse collapse" aria-labelledby="headingRoles" data-bs-parent="#faqAccordion">
+        <div class="accordion-body">
+          <ul>
+            <li><b>Администратор</b> — полный доступ: управление инвентарём, пользователями, заявками, просмотр логов, экспорт данных.</li>
+            <li><b>Пользователь</b> — просмотр инвентаря, создание заявок, возврат предметов.</li>
+            <li>Роль администратора назначается через список <code>ADMIN_LOGINS</code> в настройках.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <!-- Работа с инвентарём (для пользователя) -->
+    <div class="accordion-item" id="inventory">
+      <h2 class="accordion-header" id="headingInventory">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseInventory" aria-expanded="false" aria-controls="collapseInventory">
+          Работа с инвентарём (для пользователя)
+        </button>
+      </h2>
+      <div id="collapseInventory" class="accordion-collapse collapse" aria-labelledby="headingInventory" data-bs-parent="#faqAccordion">
+        <div class="accordion-body">
+          <ul>
+            <li>Вы можете просматривать список доступного инвентаря и его состояние.</li>
+            <li>Для поиска используйте строку поиска над таблицей инвентаря.</li>
+            <li>Доступные фильтры позволяют быстро найти нужный предмет по состоянию или названию.</li>
+            <li>Если предмет недоступен, вы увидите его статус (например, "выдан" или "на ремонте").</li>
+            <li>Для возврата предмета используйте раздел "Возврат" в личном кабинете.</li>
+            <li>Если вы не видите нужный инвентарь — обратитесь к администратору.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <!-- Заявки пользователей -->
+    <div class="accordion-item" id="requests">
+      <h2 class="accordion-header" id="headingRequests">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseRequests" aria-expanded="false" aria-controls="collapseRequests">
+          Заявки пользователей
+        </button>
+      </h2>
+      <div id="collapseRequests" class="accordion-collapse collapse" aria-labelledby="headingRequests" data-bs-parent="#faqAccordion">
+        <div class="accordion-body">
+          <ul>
+            <li>Вы можете создать заявку на получение или ремонт/замену инвентаря.</li>
+            <li>Для этого перейдите в раздел "Заявки" и заполните форму, указав инвентарный номер и комментарий (при необходимости).</li>
+            <li>Инвентарный номер можно ввести вручную или с помощью сканера штрихкодов/QR-кодов.</li>
+            <li>После отправки заявки вы увидите её статус (ожидание, одобрено, отклонено).</li>
+            <li>Историю всех ваших заявок можно посмотреть в этом же разделе.</li>
+            <li>Если ваша заявка долго не рассматривается — обратитесь к администратору.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <!-- Возврат инвентаря -->
+    <div class="accordion-item" id="return">
+      <h2 class="accordion-header" id="headingReturn">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseReturn" aria-expanded="false" aria-controls="collapseReturn">
+          Возврат инвентаря
+        </button>
+      </h2>
+      <div id="collapseReturn" class="accordion-collapse collapse" aria-labelledby="headingReturn" data-bs-parent="#faqAccordion">
+        <div class="accordion-body">
+          <ul>
+            <li>Если вы больше не используете предмет, оформите возврат через раздел "Возврат".</li>
+            <li>Выберите нужный предмет из списка и подтвердите возврат.</li>
+            <li>После возврата предмет снова станет доступен для других пользователей.</li>
+            <li>Если возникли проблемы с возвратом — обратитесь к администратору.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <!-- Планирование закупок -->
+    <div class="accordion-item" id="purchase">
+      <h2 class="accordion-header" id="headingPurchase">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePurchase" aria-expanded="false" aria-controls="collapsePurchase">
+          Планирование закупок
+        </button>
+      </h2>
+      <div id="collapsePurchase" class="accordion-collapse collapse" aria-labelledby="headingPurchase" data-bs-parent="#faqAccordion">
+        <div class="accordion-body">
+          <ul>
+            <li>Планирование закупок доступно только администраторам.</li>
+            <li>Пользователь может просматривать только уже добавленные предметы.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <!-- Отчёты и экспорт -->
+    <div class="accordion-item" id="reports">
+      <h2 class="accordion-header" id="headingReports">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseReports" aria-expanded="false" aria-controls="collapseReports">
+          Отчёты и экспорт
+        </button>
+      </h2>
+      <div id="collapseReports" class="accordion-collapse collapse" aria-labelledby="headingReports" data-bs-parent="#faqAccordion">
+        <div class="accordion-body">
+          <ul>
+            <li>Пользователь может выгрузить список инвентаря в формате CSV или JSON (если разрешено администратором).</li>
+            <li>Для этого используйте кнопки "Экспорт" в разделе "Отчёты".</li>
+            <li>Экспорт логов доступен только администраторам.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <!-- Системные логи -->
+    <div class="accordion-item" id="logs">
+      <h2 class="accordion-header" id="headingLogs">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseLogs" aria-expanded="false" aria-controls="collapseLogs">
+          Системные логи
+        </button>
+      </h2>
+      <div id="collapseLogs" class="accordion-collapse collapse" aria-labelledby="headingLogs" data-bs-parent="#faqAccordion">
+        <div class="accordion-body">
+          <ul>
+            <li>Все действия пользователей и администраторов фиксируются в системных логах.</li>
+            <li>Просмотр, экспорт и удаление логов доступны только администраторам.</li>
+            <li>Логи содержат информацию о времени, IP-адресе, действии, статусе ответа и др.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <!-- Работа со сканером штрихкодов -->
+    <div class="accordion-item" id="barcode">
+      <h2 class="accordion-header" id="headingBarcode">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseBarcode" aria-expanded="false" aria-controls="collapseBarcode">
+          Работа со сканером штрихкодов
+        </button>
+      </h2>
+      <div id="collapseBarcode" class="accordion-collapse collapse" aria-labelledby="headingBarcode" data-bs-parent="#faqAccordion">
+        <div class="accordion-body">
+          <ul>
+            <li>Для ускорения ввода инвентарных номеров можно использовать сканер штрихкодов или QR-кодов.</li>
+            <li><b>Важно!</b> По умолчанию большинство сканеров добавляют <b>Enter</b> (или другой постфикс) после кода. Для корректной работы <b>отключите постфикс</b> в настройках сканера.</li>
+            <li>Если постфикс не отключён, возможны ошибки при вводе или отправке формы.</li>
+            <li>Проверьте документацию к вашему сканеру для изменения настроек.</li>
+            <li>Если сканер не работает — попробуйте подключить его к другому USB-порту или перезагрузить страницу.</li>
+            <li>В случае проблем обратитесь к администратору или в поддержку.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <!-- Частые вопросы и проблемы -->
+    <div class="accordion-item" id="faq-troubles">
+      <h2 class="accordion-header" id="headingFaqTroubles">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFaqTroubles" aria-expanded="false" aria-controls="collapseFaqTroubles">
+          Частые вопросы и проблемы
+        </button>
+      </h2>
+      <div id="collapseFaqTroubles" class="accordion-collapse collapse" aria-labelledby="headingFaqTroubles" data-bs-parent="#faqAccordion">
+        <div class="accordion-body">
+          <ul>
+            <li>Не удаётся войти — проверьте правильность логина и пароля, обратитесь к администратору.</li>
+            <li>Не отображается инвентарь — убедитесь, что у вас есть права доступа.</li>
+            <li>Проблемы с экспортом — проверьте настройки браузера и разрешения на скачивание файлов.</li>
+            <li>Вопросы по работе — обратитесь к администратору или напишите в поддержку (см. раздел «Контакты»).</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <!-- Контакты -->
+    <div class="accordion-item" id="contacts">
+      <h2 class="accordion-header" id="headingContacts">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseContacts" aria-expanded="false" aria-controls="collapseContacts">
+          Контакты
+        </button>
+      </h2>
+      <div id="collapseContacts" class="accordion-collapse collapse" aria-labelledby="headingContacts" data-bs-parent="#faqAccordion">
+        <div class="accordion-body">
+          <ul>
+            <li>По всем вопросам и предложениям обращайтесь в Telegram: <a href="https://t.me/gs1x2" target="_blank">@gs1x2</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
+
+<script>
+// Поиск по базе знаний
+const faqSearch = document.getElementById('faqSearch');
+const accordionItems = document.querySelectorAll('.accordion-item');
+faqSearch.addEventListener('input', function() {
+  const query = this.value.toLowerCase();
+  accordionItems.forEach(item => {
+    if (item.textContent.toLowerCase().includes(query)) {
+      item.style.display = '';
+    } else {
+      item.style.display = 'none';
+    }
+  });
+});
+</script>
 {% endblock %} 
