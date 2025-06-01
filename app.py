@@ -29,14 +29,32 @@ def is_admin():
     return 'username' in session and session['username'] in config.ADMIN_LOGINS
 
 def wait_for_db():
-    max_retries = 5
+    max_retries = 30  # Увеличиваем количество попыток
     retry_interval = 5
     
     for i in range(max_retries):
         try:
+            # Сначала проверяем подключение к серверу MySQL
+            db.engine.connect()
+            # Если подключение успешно, пробуем создать таблицы
             db.create_all()
+            print("Database connection successful!")
             return
-        except OperationalError:
+        except OperationalError as e:
+            if "Unknown database" in str(e):
+                # Если база данных не существует, создаем её
+                try:
+                    # Подключаемся к MySQL без указания базы данных
+                    engine = db.create_engine(f"mysql+pymysql://{config.DB_USER}:{config.DB_PASSWORD}@{config.DB_HOST}/")
+                    with engine.connect() as conn:
+                        conn.execute(f"CREATE DATABASE IF NOT EXISTS {config.DB_NAME}")
+                    print(f"Database {config.DB_NAME} created successfully!")
+                    # После создания базы данных пробуем снова создать таблицы
+                    db.create_all()
+                    return
+                except Exception as create_db_error:
+                    print(f"Error creating database: {create_db_error}")
+            
             if i < max_retries - 1:
                 print(f"Database connection failed. Retrying in {retry_interval} seconds...")
                 time.sleep(retry_interval)
