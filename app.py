@@ -12,6 +12,7 @@ import time
 from sqlalchemy.exc import OperationalError
 from functools import wraps
 from datetime import datetime
+from flask_migrate import Migrate
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = config.SECRET_KEY
@@ -19,6 +20,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = config.SQLALCHEMY_DATABASE_URI
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = config.SQLALCHEMY_TRACK_MODIFICATIONS
 
 db.init_app(app)
+migrate = Migrate(app, db)
 
 def is_admin():
     """
@@ -97,17 +99,46 @@ def register():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '').strip()
+        id_card_code = request.form.get('id_card_code', '').strip()
 
-        user = User.query.filter_by(username=username).first()
-        if user and check_password_hash(user.password_hash, password):
+        # Проверяем, что заполнены либо логин/пароль, либо код карты
+        if not ((username and password) or id_card_code):
+            flash('Пожалуйста, введите либо логин и пароль, либо код ID-карты.', 'warning')
+            return redirect(url_for('login'))
+
+        user = None
+        auth_method = None
+
+        # Пытаемся найти пользователя по логину
+        if username and password:
+            user = User.query.filter_by(username=username).first()
+            if user and check_password_hash(user.password_hash, password):
+                auth_method = 'password'
+
+        # Если не нашли по логину/паролю, пробуем по коду карты
+        if not user and id_card_code:
+            user = User.query.filter_by(id_card_code=id_card_code).first()
+            if user:
+                auth_method = 'id_card'
+
+        if user:
+            # Проверяем двухфакторную аутентификацию
+            if user.two_factor_enabled:
+                if not (username and password and id_card_code):
+                    flash('Включена двухфакторная аутентификация. Пожалуйста, введите логин, пароль и код ID-карты.', 'warning')
+                    return redirect(url_for('login'))
+                if auth_method != 'password' or not user.id_card_code or user.id_card_code != id_card_code:
+                    flash('Неверные данные для двухфакторной аутентификации.', 'danger')
+                    return redirect(url_for('login'))
+
             # Авторизация успешна
             session['username'] = user.username
             session['role'] = user.role
 
             # Логируем вход
-            log = ActionLog(user_id=user.id, action='Logged in')
+            log = ActionLog(user_id=user.id, action=f'Logged in using {auth_method} authentication')
             db.session.add(log)
             db.session.commit()
 
@@ -117,7 +148,7 @@ def login():
             else:
                 return redirect(url_for('user_dashboard'))
         else:
-            flash('Неправильный логин или пароль.', 'danger')
+            flash('Неверные данные для входа.', 'danger')
     return render_template('login.html')
 
 @app.route('/logout')
@@ -223,6 +254,67 @@ def return_item(item_id):
         flash('У вас нет прав возвращать этот предмет.', 'danger')
 
     return redirect(url_for('user_return_items'))
+
+@app.route('/user/profile', methods=['GET', 'POST'])
+def user_profile():
+    if 'username' not in session:
+        flash('Сначала войдите в систему.', 'warning')
+        return redirect(url_for('login'))
+    
+    if is_admin():
+        return redirect(url_for('admin_profile'))
+
+    user = User.query.filter_by(username=session['username']).first()
+    if not user:
+        return render_template('error_403.html')
+
+    if request.method == 'POST':
+        action = request.form.get('action')
+        
+        if action == 'update_profile':
+            new_full_name = request.form.get('full_name', '').strip()
+            old_password = request.form.get('old_password', '').strip()
+            new_password = request.form.get('new_password', '').strip()
+            
+            if new_full_name:
+                user.full_name = new_full_name
+            
+            if old_password and new_password:
+                if not check_password_hash(user.password_hash, old_password):
+                    flash('Неверный текущий пароль.', 'danger')
+                    return redirect(url_for('user_profile'))
+                user.password_hash = generate_password_hash(new_password)
+                flash('Пароль успешно изменен.', 'success')
+            
+            db.session.commit()
+            flash('Профиль обновлен.', 'success')
+            
+        elif action == 'update_id_card':
+            new_id_card_code = request.form.get('id_card_code', '').strip()
+            if new_id_card_code:
+                # Проверяем, не занят ли код другим пользователем
+                existing_user = User.query.filter_by(id_card_code=new_id_card_code).first()
+                if existing_user and existing_user.id != user.id:
+                    flash('Этот код ID-карты уже используется другим пользователем.', 'danger')
+                    return redirect(url_for('user_profile'))
+                
+                user.id_card_code = new_id_card_code
+                db.session.commit()
+                flash('Код ID-карты обновлен.', 'success')
+            else:
+                flash('Код ID-карты не может быть пустым.', 'warning')
+                
+        elif action == 'toggle_2fa':
+            if not user.id_card_code:
+                flash('Сначала необходимо установить код ID-карты.', 'warning')
+                return redirect(url_for('user_profile'))
+            
+            user.two_factor_enabled = not user.two_factor_enabled
+            db.session.commit()
+            status = 'включена' if user.two_factor_enabled else 'отключена'
+            flash(f'Двухфакторная аутентификация {status}.', 'success')
+
+    return render_template('user_profile.html', user=user)
 
 # -------------------- АДМИНИСТРАТОР --------------------
 
@@ -708,3 +800,60 @@ def export_logs():
         as_attachment=True,
         download_name=f'system_logs_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
     )
+
+@app.route('/admin/profile', methods=['GET', 'POST'])
+def admin_profile():
+    if not is_admin():
+        return render_template('error_403.html')
+
+    user = User.query.filter_by(username=session['username']).first()
+    if not user:
+        return render_template('error_403.html')
+
+    if request.method == 'POST':
+        action = request.form.get('action')
+        
+        if action == 'update_profile':
+            new_full_name = request.form.get('full_name', '').strip()
+            old_password = request.form.get('old_password', '').strip()
+            new_password = request.form.get('new_password', '').strip()
+            
+            if new_full_name:
+                user.full_name = new_full_name
+            
+            if old_password and new_password:
+                if not check_password_hash(user.password_hash, old_password):
+                    flash('Неверный текущий пароль.', 'danger')
+                    return redirect(url_for('admin_profile'))
+                user.password_hash = generate_password_hash(new_password)
+                flash('Пароль успешно изменен.', 'success')
+            
+            db.session.commit()
+            flash('Профиль обновлен.', 'success')
+            
+        elif action == 'update_id_card':
+            new_id_card_code = request.form.get('id_card_code', '').strip()
+            if new_id_card_code:
+                # Проверяем, не занят ли код другим пользователем
+                existing_user = User.query.filter_by(id_card_code=new_id_card_code).first()
+                if existing_user and existing_user.id != user.id:
+                    flash('Этот код ID-карты уже используется другим пользователем.', 'danger')
+                    return redirect(url_for('admin_profile'))
+                
+                user.id_card_code = new_id_card_code
+                db.session.commit()
+                flash('Код ID-карты обновлен.', 'success')
+            else:
+                flash('Код ID-карты не может быть пустым.', 'warning')
+                
+        elif action == 'toggle_2fa':
+            if not user.id_card_code:
+                flash('Сначала необходимо установить код ID-карты.', 'warning')
+                return redirect(url_for('admin_profile'))
+            
+            user.two_factor_enabled = not user.two_factor_enabled
+            db.session.commit()
+            status = 'включена' if user.two_factor_enabled else 'отключена'
+            flash(f'Двухфакторная аутентификация {status}.', 'success')
+
+    return render_template('admin_profile.html', user=user)

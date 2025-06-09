@@ -14,6 +14,8 @@ class User(db.Model):
     password_hash = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(20), default='user')
     full_name = db.Column(db.String(100), nullable=True)
+    id_card_code = db.Column(db.String(100), unique=True, nullable=True)  # Код ID-карты
+    two_factor_enabled = db.Column(db.Boolean, default=False)  # Включена ли двухфакторная аутентификация
 
     def __repr__(self):
         return f'<User {self.username}>'

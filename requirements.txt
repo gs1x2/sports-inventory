@@ -4,5 +4,7 @@ Flask-SQLAlchemy==3.0.5
 SQLAlchemy==2.0.20
 python-dotenv==1.0.0
 cryptography==41.0.7
+Flask-Migrate==4.0.5
+alembic==1.12.1
 
 

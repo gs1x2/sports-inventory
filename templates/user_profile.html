@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="slide-in-top">Профиль пользователя</h2>
+
+<div class="row mt-4">
+    <!-- Основная информация -->
+    <div class="col-md-6 mb-4">
+        <div class="card card-custom fade-in-card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Основная информация</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('user_profile') }}">
+                    <input type="hidden" name="action" value="update_profile">
+                    
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Логин</label>
+                        <input type="text" class="form-control" id="username" value="{{ user.username }}" disabled>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="full_name" class="form-label">ФИО</label>
+                        <input type="text" class="form-control" id="full_name" name="full_name" value="{{ user.full_name or '' }}">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="old_password" class="form-label">Текущий пароль</label>
+                        <input type="password" class="form-control" id="old_password" name="old_password">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="new_password" class="form-label">Новый пароль</label>
+                        <input type="password" class="form-control" id="new_password" name="new_password">
+                        <div class="form-text">Оставьте пустым, если не хотите менять пароль</div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">Обновить профиль</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ID-карта и двухфакторная аутентификация -->
+    <div class="col-md-6 mb-4">
+        <div class="card card-custom fade-in-card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">ID-карта и безопасность</h5>
+            </div>
+            <div class="card-body">
+                <!-- ID-карта -->
+                <form method="POST" action="{{ url_for('user_profile') }}" class="mb-4">
+                    <input type="hidden" name="action" value="update_id_card">
+                    
+                    <div class="mb-3">
+                        <label for="id_card_code" class="form-label">Код ID-карты</label>
+                        <input type="text" class="form-control" id="id_card_code" name="id_card_code" value="{{ user.id_card_code or '' }}">
+                        <div class="form-text">
+                            {% if not user.id_card_code %}
+                            Установите код ID-карты для возможности входа по карте
+                            {% else %}
+                            Код ID-карты установлен. Вы можете изменить его.
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">Обновить код карты</button>
+                </form>
+
+                <hr>
+
+                <!-- Двухфакторная аутентификация -->
+                <form method="POST" action="{{ url_for('user_profile') }}">
+                    <input type="hidden" name="action" value="toggle_2fa">
+                    
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="two_factor" 
+                                   {% if user.two_factor_enabled %}checked{% endif %} disabled>
+                            <label class="form-check-label" for="two_factor">
+                                Двухфакторная аутентификация
+                            </label>
+                        </div>
+                        <div class="form-text">
+                            {% if user.two_factor_enabled %}
+                            Включена. При входе потребуется ввести логин, пароль и код ID-карты.
+                            {% else %}
+                            Отключена. Для включения необходимо установить код ID-карты.
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn {% if user.two_factor_enabled %}btn-danger{% else %}btn-success{% endif %}">
+                        {% if user.two_factor_enabled %}
+                        Отключить двухфакторную аутентификацию
+                        {% else %}
+                        Включить двухфакторную аутентификацию
+                        {% endif %}
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -6,10 +6,10 @@ services:
     container_name: sports_inventory_db
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: AAAAPENIS1337
       MYSQL_DATABASE: sports_inventory
       MYSQL_USER: sports
-      MYSQL_PASSWORD: sports
+      MYSQL_PASSWORD: AAAAPENIS1337
     ports:
       - "3306:3306"
     volumes:
@@ -30,7 +30,7 @@ services:
       SECRET_KEY: "super_secret_key_change_me"
       DB_HOST: "db"
       DB_USER: "sports"
-      DB_PASSWORD: "sports"
+      DB_PASSWORD: "AAAAPENIS1337"
       DB_NAME: "sports_inventory"
     volumes:
       - .:/app
