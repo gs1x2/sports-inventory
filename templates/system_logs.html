@@ -35,6 +35,23 @@
         </div>
     </div>
 
+    <!-- Информация о пагинации -->
+    <div class="alert alert-info fade-in-card mb-0">
+        <div class="d-flex justify-content-between align-items-center flex-wrap">
+            <div>
+                Показано {{ start_ip }}-{{ end_ip }} из {{ total_ips }} IP-адресов
+            </div>
+            <div class="d-flex align-items-center gap-2 mt-2 mt-md-0">
+                <span class="me-2">Показывать по:</span>
+                <select class="form-select form-select-sm w-auto" onchange="changePerPage(this.value)">
+                    <option value="25" {% if per_page == 25 %}selected{% endif %}>25</option>
+                    <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+                    <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
     <!-- Сводка по IP-адресам -->
     <div class="card fade-in-card">
         <div class="card-header">
@@ -42,11 +59,11 @@
         </div>
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table">
+                <table class="table table-hover">
                     <thead>
                         <tr>
                             <th>
-                                <a href="{{ url_for('system_logs', sort_by='ip', sort_direction='asc' if sort_by == 'ip' and sort_direction == 'desc' else 'desc') }}" class="text-decoration-none text-dark">
+                                <a href="{{ url_for('system_logs', sort_by='ip', sort_direction='asc' if sort_by == 'ip' and sort_direction == 'desc' else 'desc', page=page, per_page=per_page) }}" class="text-decoration-none text-dark">
                                     IP-адрес
                                     {% if sort_by == 'ip' %}
                                     <i class="fas fa-sort-{{ 'up' if sort_direction == 'asc' else 'down' }}"></i>
@@ -54,7 +71,7 @@
                                 </a>
                             </th>
                             <th>
-                                <a href="{{ url_for('system_logs', sort_by='total_requests', sort_direction='asc' if sort_by == 'total_requests' and sort_direction == 'desc' else 'desc') }}" class="text-decoration-none text-dark">
+                                <a href="{{ url_for('system_logs', sort_by='total_requests', sort_direction='asc' if sort_by == 'total_requests' and sort_direction == 'desc' else 'desc', page=page, per_page=per_page) }}" class="text-decoration-none text-dark">
                                     Всего запросов
                                     {% if sort_by == 'total_requests' %}
                                     <i class="fas fa-sort-{{ 'up' if sort_direction == 'asc' else 'down' }}"></i>
@@ -63,7 +80,7 @@
                             </th>
                             <th>Уникальных путей</th>
                             <th>
-                                <a href="{{ url_for('system_logs', sort_by='first_activity', sort_direction='asc' if sort_by == 'first_activity' and sort_direction == 'desc' else 'desc') }}" class="text-decoration-none text-dark">
+                                <a href="{{ url_for('system_logs', sort_by='first_activity', sort_direction='asc' if sort_by == 'first_activity' and sort_direction == 'desc' else 'desc', page=page, per_page=per_page) }}" class="text-decoration-none text-dark">
                                     Первый запрос
                                     {% if sort_by == 'first_activity' %}
                                     <i class="fas fa-sort-{{ 'up' if sort_direction == 'asc' else 'down' }}"></i>
@@ -71,7 +88,7 @@
                                 </a>
                             </th>
                             <th>
-                                <a href="{{ url_for('system_logs', sort_by='last_activity', sort_direction='asc' if sort_by == 'last_activity' and sort_direction == 'desc' else 'desc') }}" class="text-decoration-none text-dark">
+                                <a href="{{ url_for('system_logs', sort_by='last_activity', sort_direction='asc' if sort_by == 'last_activity' and sort_direction == 'desc' else 'desc', page=page, per_page=per_page) }}" class="text-decoration-none text-dark">
                                     Последний запрос
                                     {% if sort_by == 'last_activity' %}
                                     <i class="fas fa-sort-{{ 'up' if sort_direction == 'asc' else 'down' }}"></i>
@@ -110,6 +127,31 @@
             </div>
         </div>
     </div>
+
+    <!-- Пагинация -->
+    {% if total_pages > 1 %}
+    <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+            <li class="page-item {% if page == 1 %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('system_logs', page=page-1, per_page=per_page, sort_by=sort_by, sort_direction=sort_direction) if page > 1 else '#' }}" aria-label="Previous">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+            </li>
+            {% for p in pagination_range %}
+            <li class="page-item {% if p == page %}active{% endif %}">
+                <a class="page-link" href="{{ url_for('system_logs', page=p, per_page=per_page, sort_by=sort_by, sort_direction=sort_direction) }}">
+                    {{ p }}
+                </a>
+            </li>
+            {% endfor %}
+            <li class="page-item {% if page == total_pages %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('system_logs', page=page+1, per_page=per_page, sort_by=sort_by, sort_direction=sort_direction) if page < total_pages else '#' }}" aria-label="Next">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    {% endif %}
 </div>
 
 <!-- Контейнер для модального окна с деталями IP -->
@@ -129,6 +171,18 @@
     th a:hover {
         color: #0d6efd !important;
     }
+    .fade-in-card {
+        animation: fadeIn 0.5s ease-in;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .alert-info {
+        background-color: #e8f4f8;
+        border-color: #bee5eb;
+        color: #0c5460;
+    }
 </style>
 
 <script>
@@ -146,27 +200,62 @@ function loadIpDetails(ip) {
         document.getElementById('ipDetailsContainer').innerHTML = '';
     }
 
+    // Просто очищаем контейнер (без индикатора)
+    document.getElementById('ipDetailsContainer').innerHTML = '';
+
     fetch(`{{ url_for('ip_details', ip='') }}${ip}`)
         .then(response => response.text())
         .then(html => {
             document.getElementById('ipDetailsContainer').innerHTML = html;
             const modalElement = document.getElementById('ipDetailsModal');
-            currentModal = new bootstrap.Modal(modalElement);
-            
-            // Очищаем контейнер и сбрасываем ссылку на модальное окно при его закрытии
-            modalElement.addEventListener('hidden.bs.modal', function () {
-                const backdrop = document.querySelector('.modal-backdrop');
-                if (backdrop) {
-                    backdrop.remove();
-                }
-                document.body.classList.remove('modal-open');
-                document.getElementById('ipDetailsContainer').innerHTML = '';
+            if (modalElement) {
+                currentModal = new bootstrap.Modal(modalElement);
+                // Очищаем контейнер и сбрасываем ссылку на модальное окно при его закрытии
+                modalElement.addEventListener('hidden.bs.modal', function () {
+                    const backdrop = document.querySelector('.modal-backdrop');
+                    if (backdrop) {
+                        backdrop.remove();
+                    }
+                    document.body.classList.remove('modal-open');
+                    document.getElementById('ipDetailsContainer').innerHTML = '';
+                    currentModal = null;
+                });
+                currentModal.show();
+            } else {
                 currentModal = null;
-            });
-
-            currentModal.show();
+            }
         })
-        .catch(error => console.error('Error loading IP details:', error));
+        .catch(error => {
+            console.error('Error loading IP details:', error);
+            // Показываем сообщение об ошибке
+            document.getElementById('ipDetailsContainer').innerHTML = `
+                <div class="modal fade" id="errorModal" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Ошибка</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p class="text-danger">Произошла ошибка при загрузке деталей. Пожалуйста, попробуйте позже.</p>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            const errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
+            errorModal.show();
+        });
+}
+
+function changePerPage(value) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('per_page', value);
+    url.searchParams.set('page', '1'); // Сбрасываем на первую страницу
+    window.location.href = url.toString();
 }
 </script>
 {% endblock %} 

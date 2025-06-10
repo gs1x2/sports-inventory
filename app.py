@@ -11,13 +11,19 @@ import config
 import time
 from sqlalchemy.exc import OperationalError
 from functools import wraps
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask_migrate import Migrate
+from flask_caching import Cache
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = config.SECRET_KEY
 app.config['SQLALCHEMY_DATABASE_URI'] = config.SQLALCHEMY_DATABASE_URI
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = config.SQLALCHEMY_TRACK_MODIFICATIONS
+
+# Настройка кэширования
+app.config['CACHE_TYPE'] = 'SimpleCache'
+app.config['CACHE_DEFAULT_TIMEOUT'] = 300  # 5 минут
+cache = Cache(app)
 
 db.init_app(app)
 migrate = Migrate(app, db)
@@ -719,76 +725,114 @@ def system_logs():
         try:
             SystemLog.query.delete()
             db.session.commit()
+            # Инвалидируем кэш после удаления логов
+            cache.delete_many(['ip_summary', 'ip_summary_count'])
             flash('Все логи успешно удалены', 'success')
         except Exception as e:
             db.session.rollback()
             flash(f'Ошибка при удалении логов: {str(e)}', 'danger')
         return redirect(url_for('system_logs'))
     
-    # Получаем параметры сортировки
-    sort_by = request.args.get('sort_by', 'last_activity')  # last_activity, first_activity, total_requests
-    sort_direction = request.args.get('sort_direction', 'desc')  # asc, desc
+    # Получаем параметры пагинации и сортировки
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 50, type=int)
+    sort_by = request.args.get('sort_by', 'last_activity')
+    sort_direction = request.args.get('sort_direction', 'desc')
     
-    # Получаем уникальные IP-адреса с их статистикой
-    ip_query = db.session.query(
-        SystemLog.ip_address,
-        db.func.min(SystemLog.timestamp).label('first_activity'),
-        db.func.max(SystemLog.timestamp).label('last_activity'),
-        db.func.count(SystemLog.id).label('total_requests')
-    ).group_by(SystemLog.ip_address)
+    # Кэшируем общее количество IP-адресов
+    total_ips = cache.get('ip_summary_count')
+    if total_ips is None:
+        total_ips = db.session.query(SystemLog.ip_address).distinct().count()
+        cache.set('ip_summary_count', total_ips, timeout=300)
     
-    # Применяем сортировку
-    if sort_by == 'first_activity':
-        ip_query = ip_query.order_by(
-            db.desc('first_activity') if sort_direction == 'desc' else db.asc('first_activity')
-        )
-    elif sort_by == 'last_activity':
-        ip_query = ip_query.order_by(
-            db.desc('last_activity') if sort_direction == 'desc' else db.asc('last_activity')
-        )
-    elif sort_by == 'total_requests':
-        ip_query = ip_query.order_by(
-            db.desc('total_requests') if sort_direction == 'desc' else db.asc('total_requests')
-        )
+    # Кэшируем сводку по IP-адресам
+    cache_key = f'ip_summary_{page}_{per_page}_{sort_by}_{sort_direction}'
+    ip_summary = cache.get(cache_key)
     
-    ip_summary = {}
-    for ip, first_activity, last_activity, total_requests in ip_query.all():
-        # Получаем статистику по кодам ответов для каждого IP
-        status_codes = db.session.query(
-            SystemLog.status_code,
-            db.func.count(SystemLog.id)
-        ).filter_by(ip_address=ip).group_by(SystemLog.status_code).all()
+    if ip_summary is None:
+        # Базовый запрос для получения уникальных IP-адресов с их статистикой
+        ip_query = db.session.query(
+            SystemLog.ip_address,
+            db.func.min(SystemLog.timestamp).label('first_activity'),
+            db.func.max(SystemLog.timestamp).label('last_activity'),
+            db.func.count(SystemLog.id).label('total_requests')
+        ).group_by(SystemLog.ip_address)
         
-        ip_summary[ip] = {
-            'first_activity': first_activity,
-            'last_activity': last_activity,
-            'total_requests': total_requests,
-            'status_codes': dict(status_codes),
-            'unique_paths': db.session.query(SystemLog.path)
-                .filter_by(ip_address=ip)
-                .distinct()
-                .count()
-        }
+        # Применяем сортировку
+        if sort_by == 'first_activity':
+            ip_query = ip_query.order_by(
+                db.desc('first_activity') if sort_direction == 'desc' else db.asc('first_activity')
+            )
+        elif sort_by == 'last_activity':
+            ip_query = ip_query.order_by(
+                db.desc('last_activity') if sort_direction == 'desc' else db.asc('last_activity')
+            )
+        elif sort_by == 'total_requests':
+            ip_query = ip_query.order_by(
+                db.desc('total_requests') if sort_direction == 'desc' else db.asc('total_requests')
+            )
+        
+        # Применяем пагинацию
+        ip_query = ip_query.offset((page - 1) * per_page).limit(per_page)
+        
+        ip_summary = {}
+        for ip, first_activity, last_activity, total_requests in ip_query.all():
+            # Получаем статистику по кодам ответов для каждого IP
+            status_codes = db.session.query(
+                SystemLog.status_code,
+                db.func.count(SystemLog.id)
+            ).filter_by(ip_address=ip).group_by(SystemLog.status_code).all()
+            
+            ip_summary[ip] = {
+                'first_activity': first_activity,
+                'last_activity': last_activity,
+                'total_requests': total_requests,
+                'status_codes': dict(status_codes),
+                'unique_paths': db.session.query(SystemLog.path)
+                    .filter_by(ip_address=ip)
+                    .distinct()
+                    .count()
+            }
+        
+        # Кэшируем результаты на 5 минут
+        cache.set(cache_key, ip_summary, timeout=300)
+    
+    # Вычисляем общее количество страниц
+    total_pages = (total_ips + per_page - 1) // per_page
+    
+    # Вычисляем диапазон показанных IP-адресов
+    start_ip = (page - 1) * per_page + 1
+    end_ip = min(page * per_page, total_ips)
+    
+    # Вычисляем диапазон страниц для пагинации
+    pagination_start = max(1, page - 2)
+    pagination_end = min(total_pages + 1, page + 3)
+    pagination_range = range(pagination_start, pagination_end)
     
     return render_template('system_logs.html',
                          ip_summary=ip_summary,
                          sort_by=sort_by,
-                         sort_direction=sort_direction)
+                         sort_direction=sort_direction,
+                         page=page,
+                         per_page=per_page,
+                         total_pages=total_pages,
+                         total_ips=total_ips,
+                         start_ip=start_ip,
+                         end_ip=end_ip,
+                         pagination_range=pagination_range)
 
 @app.route('/admin/ip_details/<ip>')
 def ip_details(ip):
-    """Эндпоинт для получения детальной информации по IP"""
+    """Эндпоинт для получения детальной информации по IP (без пагинации и кэширования)"""
     if not is_admin():
         return render_template('error_403.html')
     
-    # Получаем логи для конкретного IP
-    logs = SystemLog.query.filter_by(ip_address=ip)\
-        .order_by(SystemLog.timestamp.desc())\
-        .limit(1000).all()
-    
+    logs = SystemLog.query.filter_by(ip_address=ip).order_by(SystemLog.timestamp.desc()).all()
+    total_logs = len(logs)
     return render_template('ip_details.html',
                          ip=ip,
-                         logs=logs)
+                         logs=logs,
+                         total_logs=total_logs)
 
 @app.route('/admin/export_logs')
 def export_logs():

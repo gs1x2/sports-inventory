@@ -1,20 +1,23 @@
 {% if logs %}
-<div class="modal fade" id="ipDetailsModal" tabindex="-1" aria-labelledby="ipDetailsModalLabel" aria-hidden="true">
+<div class="modal fade" id="ipDetailsModal" tabindex="-1">
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="ipDetailsModalLabel">Детали IP: {{ ip }}</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h5 class="modal-title">Детали IP: {{ ip }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
+                <div class="alert alert-info mb-3">
+                    Всего записей: {{ total_logs }}
+                </div>
                 <div class="table-responsive">
-                    <table class="table table-striped">
+                    <table class="table table-hover">
                         <thead>
                             <tr>
                                 <th>Время</th>
                                 <th>Метод</th>
                                 <th>Путь</th>
-                                <th>Код</th>
+                                <th>Код ответа</th>
                                 <th>Время ответа</th>
                                 <th>User Agent</th>
                             </tr>
@@ -23,16 +26,28 @@
                             {% for log in logs %}
                             <tr>
                                 <td>{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
-                                <td>{{ log.method }}</td>
+                                <td>
+                                    <span class="badge {% if log.method == 'GET' %}bg-primary{% elif log.method == 'POST' %}bg-success{% elif log.method == 'PUT' %}bg-warning{% elif log.method == 'DELETE' %}bg-danger{% else %}bg-secondary{% endif %}">
+                                        {{ log.method }}
+                                    </span>
+                                </td>
                                 <td>{{ log.path }}</td>
                                 <td>
                                     <span class="badge {% if log.status_code == 200 %}bg-success{% elif log.status_code >= 400 %}bg-danger{% else %}bg-warning{% endif %}">
                                         {{ log.status_code }}
                                     </span>
                                 </td>
-                                <td>{{ "%.3f"|format(log.response_time) }}s</td>
                                 <td>
-                                    <small class="text-muted">{{ log.user_agent[:100] }}{% if log.user_agent|length > 100 %}...{% endif %}</small>
+                                    {% if log.response_time %}
+                                    <span class="{% if log.response_time > 1 %}text-danger{% elif log.response_time > 0.5 %}text-warning{% else %}text-success{% endif %}">
+                                        {{ "%.3f"|format(log.response_time) }}s
+                                    </span>
+                                    {% else %}
+                                    -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <small class="text-muted">{{ log.user_agent }}</small>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -46,4 +61,59 @@
         </div>
     </div>
 </div>
-{% endif %} 
+{% endif %}
+
+<style>
+    .badge {
+        font-size: 0.85em;
+    }
+    .table td {
+        vertical-align: middle;
+    }
+    .text-muted {
+        font-size: 0.85em;
+    }
+</style>
+
+<script>
+function changeIpDetailsPage(newPage) {
+    if (newPage < 1 || newPage > {{ total_pages }}) return;
+    
+    const modalBody = document.querySelector('#ipDetailsModal .modal-body');
+    const originalContent = modalBody.innerHTML;
+    modalBody.innerHTML = `
+        <div class="text-center p-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Загрузка...</span>
+            </div>
+            <p class="mt-2 mb-0">Загрузка данных...</p>
+        </div>
+    `;
+
+    fetch(`{{ url_for('ip_details', ip=ip) }}?page=${newPage}&per_page={{ per_page }}`)
+        .then(response => response.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const newModalBody = doc.querySelector('#ipDetailsModal .modal-body');
+            if (newModalBody) {
+                modalBody.innerHTML = newModalBody.innerHTML;
+            } else {
+                modalBody.innerHTML = originalContent;
+                alert('Ошибка при загрузке данных. Пожалуйста, попробуйте позже.');
+            }
+        })
+        .catch(error => {
+            console.error('Error loading IP details page:', error);
+            modalBody.innerHTML = originalContent;
+            alert('Ошибка при загрузке данных. Пожалуйста, попробуйте позже.');
+        });
+}
+
+function changeIpDetailsPerPage(value) {
+    changeIpDetailsPage(1);
+    const url = new URL(window.location.href);
+    url.searchParams.set('per_page', value);
+    window.location.href = url.toString();
+}
+</script> 
