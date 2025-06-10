@@ -53,7 +53,12 @@
                     
                     <div class="mb-3">
                         <label for="id_card_code" class="form-label">Код ID-карты</label>
-                        <input type="text" class="form-control" id="id_card_code" name="id_card_code" value="{{ user.id_card_code or '' }}">
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="id_card_code" name="id_card_code" value="{{ user.id_card_code or '' }}">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#qrScannerModal" data-target-input="id_card_code">
+                                <i class="bi bi-upc-scan"></i>
+                            </button>
+                        </div>
                         <div class="form-text">
                             {% if not user.id_card_code %}
                             Установите код ID-карты для возможности входа по карте

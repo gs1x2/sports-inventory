@@ -23,7 +23,12 @@
 
       <div class="mb-3">
         <label for="id_card_code" class="form-label">Код ID-карты</label>
-        <input type="text" class="form-control" id="id_card_code" name="id_card_code">
+        <div class="input-group">
+          <input type="text" class="form-control" id="id_card_code" name="id_card_code">
+          <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#qrScannerModal" data-target-input="id_card_code">
+            <i class="bi bi-upc-scan"></i>
+          </button>
+        </div>
       </div>
 
       <button type="submit" class="btn btn-primary w-100 bounce-on-hover">Войти</button>
