@@ -717,7 +717,6 @@ def system_logs():
     # Обработка удаления логов
     if request.method == 'POST' and request.form.get('action') == 'delete_logs':
         try:
-            # Удаляем все логи
             SystemLog.query.delete()
             db.session.commit()
             flash('Все логи успешно удалены', 'success')
@@ -726,42 +725,70 @@ def system_logs():
             flash(f'Ошибка при удалении логов: {str(e)}', 'danger')
         return redirect(url_for('system_logs'))
     
-    # Получаем уникальные IP-адреса
-    ip_addresses = db.session.query(SystemLog.ip_address).distinct().all()
-    ip_addresses = [ip[0] for ip in ip_addresses]
+    # Получаем параметры сортировки
+    sort_by = request.args.get('sort_by', 'last_activity')  # last_activity, first_activity, total_requests
+    sort_direction = request.args.get('sort_direction', 'desc')  # asc, desc
     
-    # Получаем выбранный IP из параметров запроса
-    selected_ip = request.args.get('ip')
+    # Получаем уникальные IP-адреса с их статистикой
+    ip_query = db.session.query(
+        SystemLog.ip_address,
+        db.func.min(SystemLog.timestamp).label('first_activity'),
+        db.func.max(SystemLog.timestamp).label('last_activity'),
+        db.func.count(SystemLog.id).label('total_requests')
+    ).group_by(SystemLog.ip_address)
     
-    # Если выбран конкретный IP, показываем его логи
-    if selected_ip:
-        logs = SystemLog.query.filter_by(ip_address=selected_ip)\
-            .order_by(SystemLog.timestamp.desc())\
-            .limit(1000).all()
-    else:
-        # Иначе показываем последние 1000 логов
-        logs = SystemLog.query.order_by(SystemLog.timestamp.desc())\
-            .limit(1000).all()
+    # Применяем сортировку
+    if sort_by == 'first_activity':
+        ip_query = ip_query.order_by(
+            db.desc('first_activity') if sort_direction == 'desc' else db.asc('first_activity')
+        )
+    elif sort_by == 'last_activity':
+        ip_query = ip_query.order_by(
+            db.desc('last_activity') if sort_direction == 'desc' else db.asc('last_activity')
+        )
+    elif sort_by == 'total_requests':
+        ip_query = ip_query.order_by(
+            db.desc('total_requests') if sort_direction == 'desc' else db.asc('total_requests')
+        )
     
-    # Группируем логи по IP для сводки
     ip_summary = {}
-    for ip in ip_addresses:
-        ip_logs = SystemLog.query.filter_by(ip_address=ip).all()
+    for ip, first_activity, last_activity, total_requests in ip_query.all():
+        # Получаем статистику по кодам ответов для каждого IP
+        status_codes = db.session.query(
+            SystemLog.status_code,
+            db.func.count(SystemLog.id)
+        ).filter_by(ip_address=ip).group_by(SystemLog.status_code).all()
+        
         ip_summary[ip] = {
-            'total_requests': len(ip_logs),
-            'unique_paths': len(set(log.path for log in ip_logs)),
-            'last_activity': max(log.timestamp for log in ip_logs),
-            'status_codes': {
-                code: len([log for log in ip_logs if log.status_code == code])
-                for code in set(log.status_code for log in ip_logs)
-            }
+            'first_activity': first_activity,
+            'last_activity': last_activity,
+            'total_requests': total_requests,
+            'status_codes': dict(status_codes),
+            'unique_paths': db.session.query(SystemLog.path)
+                .filter_by(ip_address=ip)
+                .distinct()
+                .count()
         }
     
     return render_template('system_logs.html',
-                         ip_addresses=ip_addresses,
-                         selected_ip=selected_ip,
-                         logs=logs,
-                         ip_summary=ip_summary)
+                         ip_summary=ip_summary,
+                         sort_by=sort_by,
+                         sort_direction=sort_direction)
+
+@app.route('/admin/ip_details/<ip>')
+def ip_details(ip):
+    """Эндпоинт для получения детальной информации по IP"""
+    if not is_admin():
+        return render_template('error_403.html')
+    
+    # Получаем логи для конкретного IP
+    logs = SystemLog.query.filter_by(ip_address=ip)\
+        .order_by(SystemLog.timestamp.desc())\
+        .limit(1000).all()
+    
+    return render_template('ip_details.html',
+                         ip=ip,
+                         logs=logs)
 
 @app.route('/admin/export_logs')
 def export_logs():

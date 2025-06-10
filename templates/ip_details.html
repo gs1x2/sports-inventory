@@ -1,0 +1,49 @@
+{% if logs %}
+<div class="modal fade" id="ipDetailsModal" tabindex="-1" aria-labelledby="ipDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="ipDetailsModalLabel">Детали IP: {{ ip }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Время</th>
+                                <th>Метод</th>
+                                <th>Путь</th>
+                                <th>Код</th>
+                                <th>Время ответа</th>
+                                <th>User Agent</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in logs %}
+                            <tr>
+                                <td>{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                <td>{{ log.method }}</td>
+                                <td>{{ log.path }}</td>
+                                <td>
+                                    <span class="badge {% if log.status_code == 200 %}bg-success{% elif log.status_code >= 400 %}bg-danger{% else %}bg-warning{% endif %}">
+                                        {{ log.status_code }}
+                                    </span>
+                                </td>
+                                <td>{{ "%.3f"|format(log.response_time) }}s</td>
+                                <td>
+                                    <small class="text-muted">{{ log.user_agent[:100] }}{% if log.user_agent|length > 100 %}...{% endif %}</small>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %} 

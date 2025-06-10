@@ -36,7 +36,7 @@
     </div>
 
     <!-- Сводка по IP-адресам -->
-    <div class="card fade-in-card mt-4">
+    <div class="card fade-in-card">
         <div class="card-header">
             <h5 class="mb-0">Сводка по IP-адресам</h5>
         </div>
@@ -45,10 +45,39 @@
                 <table class="table">
                     <thead>
                         <tr>
-                            <th>IP-адрес</th>
-                            <th>Всего запросов</th>
+                            <th>
+                                <a href="{{ url_for('system_logs', sort_by='ip', sort_direction='asc' if sort_by == 'ip' and sort_direction == 'desc' else 'desc') }}" class="text-decoration-none text-dark">
+                                    IP-адрес
+                                    {% if sort_by == 'ip' %}
+                                    <i class="fas fa-sort-{{ 'up' if sort_direction == 'asc' else 'down' }}"></i>
+                                    {% endif %}
+                                </a>
+                            </th>
+                            <th>
+                                <a href="{{ url_for('system_logs', sort_by='total_requests', sort_direction='asc' if sort_by == 'total_requests' and sort_direction == 'desc' else 'desc') }}" class="text-decoration-none text-dark">
+                                    Всего запросов
+                                    {% if sort_by == 'total_requests' %}
+                                    <i class="fas fa-sort-{{ 'up' if sort_direction == 'asc' else 'down' }}"></i>
+                                    {% endif %}
+                                </a>
+                            </th>
                             <th>Уникальных путей</th>
-                            <th>Последняя активность</th>
+                            <th>
+                                <a href="{{ url_for('system_logs', sort_by='first_activity', sort_direction='asc' if sort_by == 'first_activity' and sort_direction == 'desc' else 'desc') }}" class="text-decoration-none text-dark">
+                                    Первый запрос
+                                    {% if sort_by == 'first_activity' %}
+                                    <i class="fas fa-sort-{{ 'up' if sort_direction == 'asc' else 'down' }}"></i>
+                                    {% endif %}
+                                </a>
+                            </th>
+                            <th>
+                                <a href="{{ url_for('system_logs', sort_by='last_activity', sort_direction='asc' if sort_by == 'last_activity' and sort_direction == 'desc' else 'desc') }}" class="text-decoration-none text-dark">
+                                    Последний запрос
+                                    {% if sort_by == 'last_activity' %}
+                                    <i class="fas fa-sort-{{ 'up' if sort_direction == 'asc' else 'down' }}"></i>
+                                    {% endif %}
+                                </a>
+                            </th>
                             <th>Коды ответов</th>
                             <th>Действия</th>
                         </tr>
@@ -59,6 +88,7 @@
                             <td>{{ ip }}</td>
                             <td>{{ summary.total_requests }}</td>
                             <td>{{ summary.unique_paths }}</td>
+                            <td>{{ summary.first_activity.strftime('%Y-%m-%d %H:%M:%S') }}</td>
                             <td>{{ summary.last_activity.strftime('%Y-%m-%d %H:%M:%S') }}</td>
                             <td>
                                 {% for code, count in summary.status_codes.items() %}
@@ -68,9 +98,10 @@
                                 {% endfor %}
                             </td>
                             <td>
-                                <a href="{{ url_for('system_logs', ip=ip) }}" class="btn btn-sm btn-primary">
+                                <button type="button" class="btn btn-sm btn-primary" 
+                                        onclick="loadIpDetails('{{ ip }}')">
                                     Детали
-                                </a>
+                                </button>
                             </td>
                         </tr>
                         {% endfor %}
@@ -79,50 +110,10 @@
             </div>
         </div>
     </div>
-
-    <!-- Детальные логи -->
-    {% if selected_ip %}
-    <div class="card fade-in-card mt-4">
-        <div class="card-header">
-            <h5 class="mb-0">Логи для IP: {{ selected_ip }}</h5>
-        </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Время</th>
-                            <th>Метод</th>
-                            <th>Путь</th>
-                            <th>Код</th>
-                            <th>Время ответа</th>
-                            <th>User Agent</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for log in logs %}
-                        <tr>
-                            <td>{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
-                            <td>{{ log.method }}</td>
-                            <td>{{ log.path }}</td>
-                            <td>
-                                <span class="badge {% if log.status_code == 200 %}bg-success{% elif log.status_code >= 400 %}bg-danger{% else %}bg-warning{% endif %}">
-                                    {{ log.status_code }}
-                                </span>
-                            </td>
-                            <td>{{ "%.3f"|format(log.response_time) }}s</td>
-                            <td>
-                                <small class="text-muted">{{ log.user_agent[:100] }}{% if log.user_agent|length > 100 %}...{% endif %}</small>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-    {% endif %}
 </div>
+
+<!-- Контейнер для модального окна с деталями IP -->
+<div id="ipDetailsContainer"></div>
 
 <style>
     .badge {
@@ -131,5 +122,51 @@
     .table td {
         vertical-align: middle;
     }
+    th a {
+        display: inline-block;
+        width: 100%;
+    }
+    th a:hover {
+        color: #0d6efd !important;
+    }
 </style>
+
+<script>
+let currentModal = null;
+
+function loadIpDetails(ip) {
+    // Удаляем предыдущее модальное окно и его затемнение, если они есть
+    if (currentModal) {
+        currentModal.hide();
+        const backdrop = document.querySelector('.modal-backdrop');
+        if (backdrop) {
+            backdrop.remove();
+        }
+        document.body.classList.remove('modal-open');
+        document.getElementById('ipDetailsContainer').innerHTML = '';
+    }
+
+    fetch(`{{ url_for('ip_details', ip='') }}${ip}`)
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('ipDetailsContainer').innerHTML = html;
+            const modalElement = document.getElementById('ipDetailsModal');
+            currentModal = new bootstrap.Modal(modalElement);
+            
+            // Очищаем контейнер и сбрасываем ссылку на модальное окно при его закрытии
+            modalElement.addEventListener('hidden.bs.modal', function () {
+                const backdrop = document.querySelector('.modal-backdrop');
+                if (backdrop) {
+                    backdrop.remove();
+                }
+                document.body.classList.remove('modal-open');
+                document.getElementById('ipDetailsContainer').innerHTML = '';
+                currentModal = null;
+            });
+
+            currentModal.show();
+        })
+        .catch(error => console.error('Error loading IP details:', error));
+}
+</script>
 {% endblock %} 
