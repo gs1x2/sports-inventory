@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="slide-in-top">Удаление предмета #{{ item.inventory_number }}</h2>
+<div class="alert alert-warning fade-in-card">
+    <p><strong>Внимание!</strong> Вы удаляете позицию <em>"{{ item.name }}"</em> с инвентарным номером <strong>{{ item.inventory_number }}</strong>.</p>
+    <p>Это может вызвать расхождения при учёте. Вы можете отметить предмет списанным или убрать ему доступность.</p>
+    <p>Действительно удалить?</p>
+</div>
+<form method="POST" action="{{ url_for('manager_delete_item', item_id=item.id) }}">
+    <button type="submit" class="btn btn-danger bounce-on-hover"
+            onclick="return confirm('Удалить позицию #{{ item.inventory_number }} безвозвратно?')">
+        Подтвердить удаление
+    </button>
+    <a href="{{ url_for('manager_inventory') }}" class="btn btn-secondary bounce-on-hover">Отмена</a>
+</form>
+{% endblock %} 

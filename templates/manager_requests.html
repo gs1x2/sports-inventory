@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Управление заявками</h2>
+    
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Пользователь</th>
+                    <th>Тип</th>
+                    <th>Инв. номер</th>
+                    <th>Комментарий</th>
+                    <th>Статус</th>
+                    <th>Дата</th>
+                    <th>Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for request in requests %}
+                <tr>
+                    <td>{{ request.id }}</td>
+                    <td>{{ request.user.username }}</td>
+                    <td>
+                        {% if request.request_type == 'get_item' %}
+                            Получить предмет
+                        {% elif request.request_type == 'repair_item' %}
+                            Отправить на ремонт
+                        {% else %}
+                            {{ request.request_type }}
+                        {% endif %}
+                    </td>
+                    <td>{{ request.inventory_number }}</td>
+                    <td>
+                        {% if request.comment %}
+                            <button type="button" class="btn btn-sm btn-info" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#commentModal{{ request.id }}">
+                                Показать
+                            </button>
+                            <!-- Модальное окно для каждого комментария -->
+                            <div class="modal fade" id="commentModal{{ request.id }}" tabindex="-1" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Комментарий к заявке #{{ request.id }}</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <p style="white-space: pre-wrap;">{{ request.comment }}</p>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if request.status == 'pending' %}
+                            <span class="badge bg-warning">Ожидает</span>
+                        {% elif request.status == 'approved' %}
+                            <span class="badge bg-success">Одобрено</span>
+                        {% elif request.status == 'rejected' %}
+                            <span class="badge bg-danger">Отклонено</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ request.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
+                    <td>
+                        {% if request.status == 'pending' %}
+                            <form method="POST" action="{{ url_for('manager_approve_request', req_id=request.id) }}" class="d-inline">
+                                <button type="submit" class="btn btn-sm btn-success bounce-on-hover">
+                                    Одобрить
+                                </button>
+                            </form>
+                            <form method="POST" action="{{ url_for('manager_reject_request', req_id=request.id) }}" class="d-inline">
+                                <button type="submit" class="btn btn-sm btn-danger bounce-on-hover">
+                                    Отклонить
+                                </button>
+                            </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Инициализация всех модальных окон при загрузке страницы
+    var modals = document.querySelectorAll('.modal');
+    modals.forEach(function(modal) {
+        new bootstrap.Modal(modal);
+    });
+});
+
+function showComment(comment) {
+    console.log('Showing comment:', comment); // Отладочный вывод
+    var modalElement = document.getElementById('commentModal');
+    if (!modalElement) {
+        console.error('Modal element not found!');
+        return;
+    }
+    
+    var modal = bootstrap.Modal.getInstance(modalElement);
+    if (!modal) {
+        console.log('Creating new modal instance');
+        modal = new bootstrap.Modal(modalElement);
+    }
+    
+    var commentText = document.getElementById('commentText');
+    if (commentText) {
+        commentText.textContent = comment;
+        modal.show();
+    } else {
+        console.error('Comment text element not found!');
+    }
+}
+</script>
+{% endblock %} 

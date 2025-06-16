@@ -1,53 +1,78 @@
 {% extends "base.html" %}
-{% block content %}
-<h2 class="slide-in-top">Список инвентаря</h2>
-<div class="mb-3">
-  <a href="{{ url_for('create_item') }}" class="btn btn-primary bounce-on-hover">Добавить инвентарь</a>
-</div>
 
-<table class="table table-bordered fade-in-card">
-  <thead>
-    <tr>
-      <th>ID</th>
-      <th>Инв. номер</th>
-      <th>Название</th>
-      <th>Состояние</th>
-      <th>Доступен?</th>
-      <th>Владелец (ID)</th>
-      <th>Действия</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for item in items %}
-    <tr 
-      {% if item.condition == 'decommissioned' %}
-        style="color: gray;"
-      {% endif %}
-    >
-      <td>{{ item.id }}</td>
-      <td>{{ item.inventory_number }}</td>
-      <td>{{ item.name }}</td>
-      <td>{{ item.condition }}</td>
-      <td>
-        {% if item.is_available %}
-          <span class="badge bg-success">Да</span>
-        {% else %}
-          <span class="badge bg-danger">Нет</span>
-        {% endif %}
-      </td>
-      <td>
-        {% if item.assigned_to %}
-          {{ item.assigned_to }}
-        {% else %}
-          -
-        {% endif %}
-      </td>
-      <td>
-        <a href="{{ url_for('edit_item', item_id=item.id) }}" class="btn btn-sm btn-secondary bounce-on-hover">Изм.</a>
-        <a href="{{ url_for('delete_item', item_id=item.id) }}" class="btn btn-sm btn-danger bounce-on-hover">Удалить</a>
-      </td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
+{% block content %}
+<div class="container mt-4">
+    <h2>Управление инвентарем</h2>
+    
+    <div class="mb-3">
+        <a href="{{ url_for('create_item') }}" class="btn btn-primary bounce-on-hover">
+            Добавить новый предмет
+        </a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Инв. номер</th>
+                    <th>Название</th>
+                    <th>Состояние</th>
+                    <th>Доступность</th>
+                    <th>Назначен</th>
+                    <th>Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in inventory_list %}
+                <tr>
+                    <td>#{{ item.inventory_number }}</td>
+                    <td>{{ item.name }}</td>
+                    <td>
+                        {% if item.condition == 'new' %}
+                            <span class="badge bg-success">Новый</span>
+                        {% elif item.condition == 'in_use' %}
+                            <span class="badge bg-primary">В использовании</span>
+                        {% elif item.condition == 'broken' %}
+                            <span class="badge bg-danger">Требует ремонта</span>
+                        {% elif item.condition == 'decommissioned' %}
+                            <span class="badge bg-secondary">Списан</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if item.is_available %}
+                            <span class="badge bg-success">Доступен</span>
+                        {% else %}
+                            <span class="badge bg-danger">Недоступен</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if item.assigned_user %}
+                            {{ item.assigned_user.username }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="btn-group">
+                            <a href="{{ url_for('edit_item', item_id=item.id) }}" class="btn btn-sm btn-primary bounce-on-hover">
+                                Изменить
+                            </a>
+                            <a href="{{ url_for('delete_item', item_id=item.id) }}" class="btn btn-sm btn-danger bounce-on-hover">
+                                Удалить
+                            </a>
+                            {% if not item.is_available and item.assigned_to %}
+                                <form method="POST" action="{{ url_for('admin_return_item', item_id=item.id) }}" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-warning bounce-on-hover">
+                                        Вернуть
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
 {% endblock %}

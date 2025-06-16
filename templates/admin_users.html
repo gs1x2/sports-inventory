@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 <h2 class="slide-in-top">Управление пользователями</h2>
-<p>Здесь можно посмотреть всех пользователей, их ID, а также удалить при необходимости.</p>
+<p>Здесь можно управлять пользователями, их ролями, а также удалять при необходимости.</p>
 
 <table class="table fade-in-card">
   <thead>
@@ -19,7 +19,27 @@
     <tr>
       <td>{{ u.id }}</td>
       <td>{{ u.username }}</td>
-      <td>{{ u.role }}</td>
+      <td>
+        {% if u.is_admin %}
+          <span class="badge bg-danger">Системный администратор</span>
+        {% else %}
+          <form method="POST" action="{{ url_for('update_user_role', user_id=u.id) }}" class="d-inline">
+            <select name="role" class="form-select form-select-sm" onchange="this.form.submit()" {% if u.is_admin %}disabled{% endif %}>
+              {% for role in roles %}
+                <option value="{{ role }}" {% if u.role == role %}selected{% endif %}>
+                  {% if role == 'user' %}
+                    Пользователь
+                  {% elif role == 'manager' %}
+                    Менеджер
+                  {% elif role == 'admin' %}
+                    Администратор
+                  {% endif %}
+                </option>
+              {% endfor %}
+            </select>
+          </form>
+        {% endif %}
+      </td>
       <td>{{ u.full_name or '' }}</td>
       <td>
         <!-- Перечислим позиции, assigned_to = u.id -->
@@ -30,15 +50,27 @@
         {% endfor %}
       </td>
       <td>
-        <form method="POST" action="{{ url_for('delete_user', user_id=u.id) }}">
-          <button class="btn btn-sm btn-danger bounce-on-hover" 
-                  onclick="return confirm('Удалить пользователя {{u.username}}?')">
-            Удалить
-          </button>
-        </form>
+        {% if not u.is_admin %}
+          <form method="POST" action="{{ url_for('delete_user', user_id=u.id) }}" class="d-inline">
+            <button class="btn btn-sm btn-danger bounce-on-hover" 
+                    onclick="return confirm('Удалить пользователя {{u.username}}?')">
+              Удалить
+            </button>
+          </form>
+        {% endif %}
       </td>
     </tr>
     {% endfor %}
   </tbody>
 </table>
+
+<div class="alert alert-info mt-4">
+  <h5>Информация о ролях:</h5>
+  <ul>
+    <li><strong>Системный администратор</strong> - полный доступ ко всем функциям системы. Роль назначается через конфигурацию.</li>
+    <li><strong>Администратор</strong> - полный доступ к управлению пользователями, инвентарём и заявками.</li>
+    <li><strong>Менеджер</strong> - доступ к управлению инвентарём, заявками и списками закупок.</li>
+    <li><strong>Пользователь</strong> - базовый доступ к просмотру инвентаря и созданию заявок.</li>
+  </ul>
+</div>
 {% endblock %}

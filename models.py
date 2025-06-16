@@ -1,5 +1,12 @@
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
+from enum import Enum
+import config
+
+class Role(str, Enum):
+    USER = 'user'
+    MANAGER = 'manager'
+    ADMIN = 'admin'
 
 db = SQLAlchemy()
 
@@ -12,10 +19,31 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
-    role = db.Column(db.String(20), default='user')
+    role = db.Column(db.String(20), default=Role.USER.value)
     full_name = db.Column(db.String(100), nullable=True)
     id_card_code = db.Column(db.String(100), unique=True, nullable=True)  # Код ID-карты
     two_factor_enabled = db.Column(db.Boolean, default=False)  # Включена ли двухфакторная аутентификация
+
+    @property
+    def is_admin(self):
+        """Проверяет, является ли пользователь системным администратором"""
+        return self.username in config.ADMIN_LOGINS
+
+    @property
+    def is_manager(self):
+        """Проверяет, является ли пользователь менеджером"""
+        return self.role == Role.MANAGER.value
+
+    def has_permission(self, required_role):
+        """Проверяет, имеет ли пользователь необходимую роль"""
+        if self.is_admin:
+            return True
+        role_hierarchy = {
+            Role.USER.value: 0,
+            Role.MANAGER.value: 1,
+            Role.ADMIN.value: 2
+        }
+        return role_hierarchy.get(self.role, 0) >= role_hierarchy.get(required_role, 0)
 
     def __repr__(self):
         return f'<User {self.username}>'

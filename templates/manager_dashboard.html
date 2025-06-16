@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="slide-in-top">Панель управления менеджера: {{ user.full_name or user.username }}</h2>
+
+<div class="row mt-4">
+    <!-- Статистика -->
+    <div class="col-md-12 mb-4">
+        <div class="card card-custom fade-in-card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">Статистика</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <h3>{{ inventory|selectattr('is_available', 'equalto', true)|list|length }}</h3>
+                                <p class="text-muted mb-0">Доступных предметов</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <h3>{{ inventory|selectattr('is_available', 'equalto', false)|list|length }}</h3>
+                                <p class="text-muted mb-0">Выданных предметов</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <h3>{{ requests|selectattr('status', 'equalto', 'pending')|list|length }}</h3>
+                                <p class="text-muted mb-0">Ожидающих заявок</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <h3>{{ requests|selectattr('status', 'equalto', 'approved')|list|length }}</h3>
+                                <p class="text-muted mb-0">Одобренных заявок</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Последние заявки -->
+    <div class="col-md-6 mb-4">
+        <div class="card card-custom fade-in-card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">Последние заявки</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Пользователь</th>
+                                <th>Тип</th>
+                                <th>Статус</th>
+                                <th>Дата</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for request in requests[:5] %}
+                            <tr>
+                                <td>{{ request.id }}</td>
+                                <td>{{ request.user.username }}</td>
+                                <td>
+                                    {% if request.request_type == 'get_item' %}
+                                        Получение
+                                    {% else %}
+                                        Ремонт
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if request.status == 'pending' %}
+                                        <span class="badge bg-warning">Ожидает</span>
+                                    {% elif request.status == 'approved' %}
+                                        <span class="badge bg-success">Одобрено</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Отклонено</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ request.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <a href="{{ url_for('manager_requests') }}" class="btn btn-primary mt-3">Все заявки</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Инвентарь -->
+    <div class="col-md-6 mb-4">
+        <div class="card card-custom fade-in-card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">Инвентарь</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>№</th>
+                                <th>Название</th>
+                                <th>Состояние</th>
+                                <th>Статус</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in inventory[:5] %}
+                            <tr>
+                                <td>{{ item.inventory_number }}</td>
+                                <td>{{ item.name }}</td>
+                                <td>
+                                    {% if item.condition == 'new' %}
+                                        <span class="badge bg-success">Новый</span>
+                                    {% elif item.condition == 'in_use' %}
+                                        <span class="badge bg-primary">В использовании</span>
+                                    {% elif item.condition == 'broken' %}
+                                        <span class="badge bg-danger">Сломан</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Списан</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if item.is_available %}
+                                        <span class="badge bg-success">Доступен</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Выдан</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <a href="{{ url_for('manager_inventory') }}" class="btn btn-primary mt-3">Весь инвентарь</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
